@@ -30,6 +30,7 @@ func addFetchFlags(fs *flag.FlagSet) {
 	fs.StringVar(&tag, "tag", "", "tag of the package")
 	fs.BoolVar(&noRecurse, "no-recurse", false, "do not fetch recursively")
 	fs.BoolVar(&insecure, "precaire", false, "allow the use of insecure protocols")
+	fs.BoolVar(&disableGitDepth, "disable-git-fetch", false, "should disable git --depth usage")
 	fs.BoolVar(&tests, "t", false, "fetch _test.go files and testdata")
 	fs.BoolVar(&all, "a", false, "fetch all files and subfolders")
 }
