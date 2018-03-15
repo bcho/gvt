@@ -345,10 +345,14 @@ func (g *gitrepo) Checkout(branch, tag, revision string) (WorkingCopy, error) {
 	if tag != "" {
 		quiet = true // git REALLY wants to tell you how awesome 'detached HEAD' is...
 		args = append(args, "--branch", tag, "--single-branch")
-		args = append(args, "--depth", "1")
+		if !g.disableGitDepth {
+			args = append(args, "--depth", "1")
+		}
 	}
 	if revision == "" {
-		args = append(args, "--depth", "1")
+		if !g.disableGitDepth {
+			args = append(args, "--depth", "1")
+		}
 	}
 
 	if quiet {
