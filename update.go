@@ -16,6 +16,7 @@ var (
 func addUpdateFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&updateAll, "all", false, "update all dependencies")
 	fs.BoolVar(&insecure, "precaire", false, "allow the use of insecure protocols")
+	fs.BoolVar(&disableGitDepth, "disable-git-depth", false, "should disable git --depth usage")
 }
 
 var cmdUpdate = &Command{
@@ -37,7 +38,8 @@ Flags:
 		update all dependencies in the manifest.
 	-precaire
 		allow the use of insecure protocols.
-
+        -disable-git-depth
+                disable git depth usage.
 `,
 	Run: func(args []string) error {
 		if len(args) != 1 && !updateAll {
@@ -70,7 +72,7 @@ Flags:
 				return fmt.Errorf("dependency could not be deleted from manifest: %v", err)
 			}
 
-			repo, err := vendor.NewRemoteRepo(d.Repository, d.VCS, insecure)
+			repo, err := vendor.NewRemoteRepo(d.Repository, d.VCS, insecure, disableGitDepth)
 			if err != nil {
 				return fmt.Errorf("could not determine repository for import %q", d.Importpath)
 			}

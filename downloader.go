@@ -76,7 +76,7 @@ func (d *Downloader) Flush() error {
 }
 
 // DeduceRemoteRepo is a cached version of vendor.DeduceRemoteRepo
-func (d *Downloader) DeduceRemoteRepo(path string, insecure bool) (vendor.RemoteRepo, string, error) {
+func (d *Downloader) DeduceRemoteRepo(path string, insecure, disableGitDepth bool) (vendor.RemoteRepo, string, error) {
 	cache := d.repos
 	if insecure {
 		cache = d.reposI
@@ -92,7 +92,7 @@ func (d *Downloader) DeduceRemoteRepo(path string, insecure bool) (vendor.Remote
 	}
 	d.reposMu.RUnlock()
 
-	repo, extra, err := vendor.DeduceRemoteRepo(path, insecure)
+	repo, extra, err := vendor.DeduceRemoteRepo(path, insecure, disableGitDepth)
 	if err != nil {
 		return repo, extra, err
 	}

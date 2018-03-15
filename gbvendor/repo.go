@@ -60,7 +60,7 @@ var (
 // Remote repositories can be bare import paths, or urls including a checkout scheme.
 // If deduction would cause traversal of an insecure host, a message will be
 // printed and the travelsal path will be ignored.
-func DeduceRemoteRepo(path string, insecure bool) (RemoteRepo, string, error) {
+func DeduceRemoteRepo(path string, insecure, disableGitDepth bool) (RemoteRepo, string, error) {
 	u, err := url.Parse(path)
 	if err != nil {
 		return nil, "", fmt.Errorf("%q is not a valid import path", path)
@@ -83,7 +83,7 @@ func DeduceRemoteRepo(path string, insecure bool) (RemoteRepo, string, error) {
 			Host: "github.com",
 			Path: v[2],
 		}
-		repo, err := Gitrepo(url, insecure, schemes...)
+		repo, err := Gitrepo(url, insecure, disableGitDepth, schemes...)
 		return repo, v[0][len(v[1]):], err
 	case bbregex.MatchString(path):
 		v := bbregex.FindStringSubmatch(path)
@@ -91,7 +91,7 @@ func DeduceRemoteRepo(path string, insecure bool) (RemoteRepo, string, error) {
 			Host: "bitbucket.org",
 			Path: v[2],
 		}
-		repo, err := Gitrepo(url, insecure, schemes...)
+		repo, err := Gitrepo(url, insecure, disableGitDepth, schemes...)
 		if err == nil {
 			return repo, v[0][len(v[1]):], nil
 		}
@@ -110,7 +110,7 @@ func DeduceRemoteRepo(path string, insecure bool) (RemoteRepo, string, error) {
 		if err == nil {
 			return repo, v[0][len(v[1]):], nil
 		}
-		repo, err = Gitrepo(url, insecure, schemes...)
+		repo, err = Gitrepo(url, insecure, disableGitDepth, schemes...)
 		if err == nil {
 			return repo, v[0][len(v[1]):], nil
 		}
@@ -138,7 +138,7 @@ func DeduceRemoteRepo(path string, insecure bool) (RemoteRepo, string, error) {
 				Host: x[0],
 				Path: x[1],
 			}
-			repo, err := Gitrepo(url, insecure, schemes...)
+			repo, err := Gitrepo(url, insecure, disableGitDepth, schemes...)
 			return repo, v[6], err
 		case "hg":
 			x := strings.SplitN(v[1], "/", 2)
@@ -170,7 +170,7 @@ func DeduceRemoteRepo(path string, insecure bool) (RemoteRepo, string, error) {
 	switch vcs {
 	case "git":
 		u.Path = u.Path[1:]
-		repo, err := Gitrepo(u, insecure, u.Scheme)
+		repo, err := Gitrepo(u, insecure, disableGitDepth, u.Scheme)
 		return repo, extra, err
 	case "hg":
 		u.Path = u.Path[1:]
@@ -184,21 +184,21 @@ func DeduceRemoteRepo(path string, insecure bool) (RemoteRepo, string, error) {
 	}
 }
 
-func NewRemoteRepo(repoURL, vcs string, insecure bool) (RemoteRepo, error) {
+func NewRemoteRepo(repoURL, vcs string, insecure, disableGitDepth bool) (RemoteRepo, error) {
 	u, err := url.Parse(repoURL)
 	if err != nil {
 		return nil, fmt.Errorf("%q is not a valid import path", repoURL)
 	}
 	switch vcs {
 	case "git":
-		return Gitrepo(u, insecure, u.Scheme)
+		return Gitrepo(u, insecure, disableGitDepth, u.Scheme)
 	case "hg":
 		return Hgrepo(u, insecure, u.Scheme)
 	case "bzr":
 		return Bzrrepo(repoURL)
 	case "":
 		// for backwards compatibility with manifests that miss the VCS entry
-		if repo, err := Gitrepo(u, insecure, u.Scheme); err == nil {
+		if repo, err := Gitrepo(u, insecure, disableGitDepth, u.Scheme); err == nil {
 			return repo, nil
 		}
 		if repo, err := Hgrepo(u, insecure, u.Scheme); err == nil {
@@ -213,7 +213,7 @@ func NewRemoteRepo(repoURL, vcs string, insecure bool) (RemoteRepo, error) {
 }
 
 // Gitrepo returns a RemoteRepo representing a remote git repository.
-func Gitrepo(url *url.URL, insecure bool, schemes ...string) (RemoteRepo, error) {
+func Gitrepo(url *url.URL, insecure, disableGitDepth bool, schemes ...string) (RemoteRepo, error) {
 	if len(schemes) == 0 {
 		schemes = []string{"https", "git", "ssh", "http"}
 	}
@@ -222,7 +222,8 @@ func Gitrepo(url *url.URL, insecure bool, schemes ...string) (RemoteRepo, error)
 		return nil, err
 	}
 	return &gitrepo{
-		url: u,
+		url:             u,
+		disableGitDepth: disableGitDepth,
 	}, nil
 }
 
@@ -295,9 +296,11 @@ func probe(vcs func(*url.URL) error, url *url.URL, insecure bool, schemes ...str
 
 // gitrepo is a git RemoteRepo.
 type gitrepo struct {
-
 	// remote repository url, see man 1 git-clone
 	url string
+
+	// should disable git --depth usage
+	disableGitDepth bool
 }
 
 func (g *gitrepo) URL() string {

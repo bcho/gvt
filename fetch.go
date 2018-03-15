@@ -14,13 +14,14 @@ import (
 )
 
 var (
-	branch    string
-	revision  string // revision (commit)
-	tag       string
-	noRecurse bool
-	insecure  bool // Allow the use of insecure protocols
-	tests     bool
-	all       bool
+	branch          string
+	revision        string // revision (commit)
+	tag             string
+	noRecurse       bool
+	insecure        bool // Allow the use of insecure protocols
+	disableGitDepth bool // Should disable git --depth usage
+	tests           bool
+	all             bool
 )
 
 func addFetchFlags(fs *flag.FlagSet) {
@@ -64,7 +65,8 @@ Flags:
 		If no revision supplied, the latest available will be fetched.
 	-precaire
 		allow the use of insecure protocols.
-
+        -disable-git-depth
+                disable git depth usage.
 `,
 	Run: func(args []string) error {
 		switch len(args) {
@@ -156,7 +158,7 @@ func fetchRecursive(m *vendor.Manifest, fullPath string, level int) error {
 
 	// Find and download the repository
 
-	repo, extra, err := GlobalDownloader.DeduceRemoteRepo(fullPath, insecure)
+	repo, extra, err := GlobalDownloader.DeduceRemoteRepo(fullPath, insecure, disableGitDepth)
 	if err != nil {
 		return err
 	}

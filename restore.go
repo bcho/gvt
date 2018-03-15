@@ -14,13 +14,15 @@ import (
 )
 
 var (
-	rbInsecure    bool // Allow the use of insecure protocols
-	rbConnections uint // Count of concurrent download connections
+	rbInsecure        bool // Allow the use of insecure protocols
+	rbConnections     uint // Count of concurrent download connections
+	rbDisableGitDepth bool // Should disable git --depth usage
 )
 
 func addRestoreFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&rbInsecure, "precaire", false, "allow the use of insecure protocols")
 	fs.UintVar(&rbConnections, "connections", 8, "count of parallel download connections")
+	fs.BoolVar(&rbDisableGitDepth, "disable-git-depth", false, "should disable git --depth usage")
 }
 
 var cmdRestore = &Command{
@@ -43,6 +45,8 @@ Flags:
 		allow the use of insecure protocols.
 	-connections
 		count of parallel download connections.
+        -disable-git-depth
+                disable git depth usage.
 `,
 	Run: func(args []string) error {
 		switch len(args) {
@@ -104,7 +108,7 @@ func downloadDependency(dep vendor.Dependency, errors *uint32, vendorDir string,
 		log.Printf("fetching %s %s", dep.Importpath, extraMsg)
 	}
 
-	repo, err := vendor.NewRemoteRepo(dep.Repository, dep.VCS, rbInsecure)
+	repo, err := vendor.NewRemoteRepo(dep.Repository, dep.VCS, rbInsecure, rbDisableGitDepth)
 	if err != nil {
 		return fmt.Errorf("dependency could not be processed: %s", err)
 	}
